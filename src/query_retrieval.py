@@ -1,5 +1,7 @@
-# TODO: Implement this module
-# query_retrieval.py
+"""
+Query Retrieval Module for RAG System
+Handles: query cleaning, embedding, similarity search, and ranking
+"""
 
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -8,9 +10,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Step 1: Clean Query
 # -------------------------------
 def clean_query(query: str) -> str:
-    """
-    Clean user query for better retrieval
-    """
+    """Clean user query for better retrieval"""
     return query.lower().strip()
 
 
@@ -18,78 +18,58 @@ def clean_query(query: str) -> str:
 # Step 2: Get Query Embedding
 # -------------------------------
 def get_query_embedding(query: str, model):
-    """
-    Convert query to embedding vector
-    """
+    """Convert query to embedding vector"""
     return model.encode(query)
 
 
 # -------------------------------
-# Step 3: Similarity Search
-# -------------------------------
-def compute_similarity(query_embedding, vector_db):
-    """
-    Compute cosine similarity between query and stored embeddings
-    """
-    results = []
-
-    for item in vector_db:
-        score = cosine_similarity(
-            [query_embedding], [item["embedding"]]
-        )[0][0]
-
-        results.append({
-            "text": item["text"],
-            "score": score
-        })
-
-    return results
-
-
-# -------------------------------
-# Step 4: Filter + Rank Results
+# Step 3: Filter + Rank Results
 # -------------------------------
 def rank_and_filter(results, top_k=3, threshold=0.3):
     """
-    Sort results and filter low-quality matches
+    Sort results and filter low-quality matches.
+    Expects results as list of (text, score) tuples from EmbeddingDB.search()
     """
-    # Remove low similarity results
-    filtered = [r for r in results if r["score"] >= threshold]
+    # Filter low similarity results
+    filtered = [(text, score) for text, score in results if score >= threshold]
 
     # Sort by highest similarity
-    filtered.sort(key=lambda x: x["score"], reverse=True)
+    filtered.sort(key=lambda x: x[1], reverse=True)
 
     # Remove duplicate texts
     seen = set()
     unique_results = []
-    for r in filtered:
-        if r["text"] not in seen:
-            unique_results.append(r)
-            seen.add(r["text"])
+    for text, score in filtered:
+        if text not in seen:
+            unique_results.append((text, score))
+            seen.add(text)
 
     return unique_results[:top_k]
 
 
 # -------------------------------
-# Step 5: Final Retrieval Pipeline
+# Step 4: Final Retrieval Pipeline
 # -------------------------------
-def retrieve_relevant_chunks(query, vector_db, model, top_k=3):
+def retrieve_relevant_chunks(query, db, top_k=3):
     """
-    Full pipeline: query → embedding → similarity → top chunks
+    Full pipeline: query → embedding → similarity search → top chunks
+    
+    Args:
+        query (str): User's question
+        db (EmbeddingDB): The embedding database with stored chunks
+        top_k (int): Number of top chunks to return
+    
+    Returns:
+        List[str]: Top matching text chunks
     """
     # Clean query
-    query = clean_query(query)
+    cleaned_query = clean_query(query)
 
-    # Convert to embedding
-    query_embedding = get_query_embedding(query, model)
+    # Use EmbeddingDB's built-in search (returns [(text, score), ...])
+    results = db.search(cleaned_query, top_k=top_k * 2)  # fetch extra, then filter
 
-    # Compute similarity
-    results = compute_similarity(query_embedding, vector_db)
+    # Rank + filter by threshold
+    top_results = rank_and_filter(results, top_k=top_k, threshold=0.3)
 
-    # Rank + filter
-    top_results = rank_and_filter(results, top_k=top_k)
-
-    # Extract only text
-    top_chunks = [r["text"] for r in top_results]
-
-    return top_chunks
+    # Return only the text
+    return [text for text, score in top_results]
