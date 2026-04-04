@@ -128,7 +128,7 @@ if __name__ == "__main__":
     cleaned = clean_text(sample_text)
     print(f"Original: {repr(sample_text)}")
     print(f"Cleaned:  {repr(cleaned)}")
-    print(f"✓ Cleaning works\n")
+    print("Cleaning works\n")
     
     # Test 3: Chunk text
     print("Test 3: Testing text chunking...")
@@ -143,9 +143,9 @@ if __name__ == "__main__":
         overlap_text = chunks[0]['content'][-100:]
         chunk1_start = chunks[1]['content'][:100]
         if overlap_text == chunk1_start:
-            print(f"✓ Overlap preserved correctly\n")
+            print("✓ Overlap preserved correctly\n")
         else:
-            print(f"⚠ Overlap not matching as expected\n")
+            print("⚠ Overlap not matching as expected\n")
     
     # Test 4: Process a real PDF if available
     print("Test 4: Testing PDF processing...")
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         data_dir_str = str(project_root / "data")
         output_dir_str = str(project_root / "data" / "processed")
         results = process_all_pdfs(data_dir=data_dir_str, output_dir=output_dir_str)
-        print(f"\nBatch Results:")
+        print("\nBatch Results:")
         print(f"  Total files: {results['total_files']}")
         print(f"  Successful: {results['successful']}")
         print(f"  Failed: {results['failed']}")
