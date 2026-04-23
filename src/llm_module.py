@@ -3,11 +3,8 @@ LLM Module - Gemini (Stable Working Version)
 """
 
 import os
-from dotenv import load_dotenv
 import google.generativeai as genai
 
-# Load env
-load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
