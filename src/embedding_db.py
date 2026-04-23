@@ -1,78 +1,67 @@
 """
-Embedding Database Module using FAISS (Optimized Vector Search)
+Embedding Database Module for RAG System
+Handles generating embeddings and performing similarity-based retrieval
 """
 
 import numpy as np
-import faiss
 from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Tuple, Dict
 
 
 class EmbeddingDB:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        """
-        FAISS-based embedding database
-
-        Args:
-            model_name: SentenceTransformer model
-        """
+    def __init__(self, model_name: str = "all-mpnet-base-v2"):
         self.model = SentenceTransformer(model_name)
         self.chunks: List[str] = []
-        self.index = None
-        self.embedding_dim = None
+        self.embeddings: np.ndarray = np.array([])
+        self.model_name = model_name
 
     def add_documents(self, chunks: List[str]) -> None:
         if not chunks:
             print("Warning: No chunks provided")
             return
-
+        
         self.chunks.extend(chunks)
-        print(f"✓ Added {len(chunks)} documents (Total: {len(self.chunks)})")
+        print(f"✓ Added {len(chunks)} documents (total: {len(self.chunks)})")
 
     def create_embeddings(self) -> None:
         if not self.chunks:
             print("Error: No documents to embed")
             return
-
-        print("Generating embeddings...")
-        embeddings = self.model.encode(self.chunks, convert_to_numpy=True)
-
-        # Normalize for cosine similarity
-        faiss.normalize_L2(embeddings)
-
-        self.embedding_dim = embeddings.shape[1]
-
-        # Create FAISS index
-        self.index = faiss.IndexFlatIP(self.embedding_dim)
-        self.index.add(embeddings)
-
-        print(f"✓ FAISS index created with {len(self.chunks)} vectors")
+        
+        print(f"Generating embeddings for {len(self.chunks)} documents...")
+        self.embeddings = self.model.encode(self.chunks, convert_to_numpy=True)
+        print(f"✓ Embeddings created. Shape: {self.embeddings.shape}")
 
     def search(self, query: str, top_k: int = 5) -> List[Tuple[str, float]]:
-        if self.index is None:
-            raise ValueError("Index not created. Call create_embeddings() first.")
+        if self.embeddings.size == 0:
+            raise ValueError("Call create_embeddings() first")
 
-        query_embedding = self.model.encode([query], convert_to_numpy=True)
+        if top_k > len(self.chunks):
+            top_k = len(self.chunks)
 
-        # Normalize query
-        faiss.normalize_L2(query_embedding)
+        query_embedding = self.model.encode(query, convert_to_numpy=True)
 
-        scores, indices = self.index.search(query_embedding, top_k)
+        similarities = cosine_similarity([query_embedding], self.embeddings)[0]
 
-        results = []
-        for score, idx in zip(scores[0], indices[0]):
-            results.append((self.chunks[idx], float(score)))
+        top_indices = np.argsort(similarities)[::-1][:top_k]
+
+        results = [
+            (self.chunks[idx], float(similarities[idx]))
+            for idx in top_indices
+        ]
 
         return results
 
     def get_stats(self) -> Dict:
         return {
             "num_documents": len(self.chunks),
-            "embedding_dim": self.embedding_dim,
-            "index_created": self.index is not None
+            "embedding_dim": self.embeddings.shape[1] if self.embeddings.size > 0 else 0,
+            "model_name": self.model_name,
+            "embeddings_created": self.embeddings.size > 0
         }
 
     def clear(self) -> None:
         self.chunks = []
-        self.index = None
+        self.embeddings = np.array([])
         print("✓ Database cleared")
