@@ -1,15 +1,14 @@
 """
 LexAI — Legal Q&A System (Premium UI + LLM)
 """
-
+import os
+os.environ["TRANSFORMERS_NO_TORCHVISION"] = "1"
+os.environ["DISABLE_TRANSFORMERS_AV"] = "1"
 import streamlit as st
 import sys
-import os
 import tempfile
 from pathlib import Path
 
-os.environ["TRANSFORMERS_NO_TORCHVISION"] = "1"
-os.environ["DISABLE_TRANSFORMERS_AV"] = "1"
 # ── Page config ─────────────────────────────────────
 st.set_page_config(
     page_title="LexAI — Legal Q&A System",
