@@ -8,6 +8,7 @@ import os
 import tempfile
 from pathlib import Path
 
+os.environ["TRANSFORMERS_NO_TORCHVISION"] = "1"
 # ── Page config ─────────────────────────────────────
 st.set_page_config(
     page_title="LexAI — Legal Q&A System",
